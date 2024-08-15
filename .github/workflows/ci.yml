@@ -1,0 +1,9 @@
+name: CI
+
+on: push
+
+jobs:
+  Integration:
+    runs-on: ubuntu-latest
+    steps:
+      - run: false
