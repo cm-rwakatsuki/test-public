@@ -1,9 +1,9 @@
 name: CI
 
-on: pull_request
+on: push
 
 jobs:
   Integration:
     runs-on: ubuntu-latest
     steps:
-      - run: false
+      - run: true
