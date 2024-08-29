@@ -4,17 +4,9 @@ on:
   workflow_dispatch
 
 jobs:
-  integration:
-    runs-on: ubuntu-latest
-    steps:
-      - name: integration
-        run: |
-          echo "Integration"
   deployment:
     runs-on: ubuntu-latest
-    if: github.ref_name == 'main'
-    environment: development # Environment の名前を指定
-    needs: integration
+    environment: Development
     steps:
       - name: deploy
         run: |
