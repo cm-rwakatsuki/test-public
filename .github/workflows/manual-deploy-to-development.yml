@@ -1,21 +1,16 @@
 name: Manual Deploy to Development
 
 on:
-  workflow_dispatch
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
+  workflow_dispatch:
 
 jobs:
-  integration:
+  test_step:
     runs-on: ubuntu-latest
+    environment: Development
     steps:
-      - name: integration
-        run: |
-          echo "Integration"
-  deployment:
-    runs-on: ubuntu-latest
-    if: github.ref_name == 'main'
-    environment: development # Environment の名前を指定
-    needs: integration
-    steps:
-      - name: deploy
-        run: |
-          echo "Development Deployment"
+      - run: echo "test_step Done."
