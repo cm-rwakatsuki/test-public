@@ -39,9 +39,11 @@ jobs:
         with:
           ref: ${{ env.TARGET_REF }}
 
+      - name: Fetch all tags
+        run: git fetch --all --tags
+
       - name: Check if the tag is newer than the existing latest tag
         run: |
-          git fetch --all --tags
           EXISTING_LATEST_TAG=$(git tag --sort=-v:refname | head -n 1)
           if [ -n "$EXISTING_LATEST_TAG" ]; then
             EXISTING_LATEST_VERSION=${EXISTING_LATEST_TAG#v}
@@ -66,9 +68,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-
-          # リポジトリの最新状態を取得
-          git fetch --all --tags
 
           # 現在のタグの一つ前のタグの取得を試みる
           PREV_TAG=$(git tag --sort=-creatordate | grep -A 1 ${{ env.NEW_TAG }} | tail -n 1)
