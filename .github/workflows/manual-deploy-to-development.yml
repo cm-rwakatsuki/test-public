@@ -42,11 +42,18 @@ jobs:
       - name: Check if the tag is newer than the latest tag
         run: |
           git fetch --all --tags
-          LATEST_TAG=$(git tag --sort=-creatordate | head -n 1)
-          if [ -n "$LATEST_TAG" ] && [ "$(git rev-list -n 1 $LATEST_TAG)" = "$(git rev-list -n 1 ${{ env.TARGET_REF }})" ]; then
-            echo "The tag is not newer than the latest tag."
-            exit 1
+          LATEST_TAG=$(git tag --sort=-v:refname | head -n 1)
+          if [ -n "$LATEST_TAG" ]; then
+            LATEST_VERSION=${LATEST_TAG#v}
+            NEW_VERSION=${{ env.TAG_NAME }}
+            NEW_VERSION=${NEW_VERSION#v}
+            
+            if [ "$(printf '%s\n' "$LATEST_VERSION" "$NEW_VERSION" | sort -V | tail -n 1)" != "$NEW_VERSION" ]; then
+              echo "Error: The specified tag (${{ env.TAG_NAME }}) is not newer than the latest tag ($LATEST_TAG)."
+              exit 1
+            fi
           fi
+          echo "The specified tag (${{ env.TAG_NAME }}) is valid and newer than the latest tag."
 
       - name: Tagging
         run: git tag ${{ env.TAG_NAME }}
