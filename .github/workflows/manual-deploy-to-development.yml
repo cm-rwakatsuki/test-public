@@ -9,8 +9,10 @@ on:
       newTag:
         description: "新規リリースするタグ名 (e.g. v1.0.0)"
         required: true
-      targetRef:
-        description: "リリース対象のref (e.g. refs/heads/some-branch)"
+      targetBranch:
+        # コミット sha を直接指定するとなぜか workflow の書き込み権限が要求される不具合があるため、ブランチ名で ref を指定する
+        # @see https://github.com/orgs/community/discussions/35410#discussioncomment-9021192
+        description: "リリース対象のブランチ名"
         required: true
         default: main
 
@@ -25,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NEW_TAG: ${{ github.event.inputs.newTag }}
-      TARGET_REF: ${{ github.event.inputs.targetRef }}
+      TARGET_BRANCH: ${{ github.event.inputs.targetBranch }}
     steps:
       - name: Check semver format of target tag
         run: |
@@ -37,7 +39,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ env.TARGET_REF }}
+          ref: ${{ env.TARGET_BRANCH }}
 
       - name: Fetch all tags
         run: git fetch --all --tags
@@ -84,5 +86,5 @@ jobs:
           fi
       
           # リリースを作成（タグを明示的に指定）
-          gh release create ${{ env.NEW_TAG }} --target ${{ env.TARGET_REF }} --title "${{ env.NEW_TAG }}" --notes "$NOTES"
+          gh release create ${{ env.NEW_TAG }} --target ${{ env.TARGET_BRANCH }} --title "${{ env.NEW_TAG }}" --notes "$NOTES"
           echo "Release created."
