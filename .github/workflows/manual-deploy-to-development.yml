@@ -49,11 +49,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
 
-          # 前回のタグを取得
-          PREV_TAG=$(git describe --tags --abbrev=0 ${{ env.TAG_NAME }}^)
+          # 現在のタグの一つ前のタグの取得を試みる
+          PREV_TAG=$(git describe --tags --abbrev=0 ${{ env.TAG_NAME }}^ 2>/dev/null || echo "")
 
-          # リリースノートを生成
-          NOTES=$(gh api repos/${{ github.repository_owner }}/${{ github.repository }}/releases/generate-notes -F tag_name=${{ env.TAG_NAME }} -F previous_tag_name=$PREV_TAG --jq .body)
+          if [ -z "$PREV_TAG" ]; then
+            # 前のタグが見つからない場合、最初のコミットからのリリースノートを生成
+            NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes -F tag_name=${{ env.TAG_NAME }} --jq .body)
+          else
+            # 前のタグが見つかった場合、そのタグからのリリースノートを生成
+            NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes -F tag_name=${{ env.TAG_NAME }} -F previous_tag_name=$PREV_TAG --jq .body)
+          fi
 
           # リリースを作成
           gh release create $TAG -t $TAG -n "$NOTES"
