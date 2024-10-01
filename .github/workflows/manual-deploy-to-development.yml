@@ -1,16 +1,59 @@
-name: Manual Deploy to Development
+name: RELEASE_TO_STAGING
+
+env:
+  TZ: "Asia/Tokyo"
 
 on:
-  pull_request:
-    branches:
-      - main
-    types:
-      - closed
   workflow_dispatch:
+    inputs:
+      tagName:
+        description: "タグ名 (e.g. v1.0.0)"
+        required: true
+      targetRef:
+        description: "リリース対象のref (e.g. refs/heads/some-branch)"
+        required: true
+        default: main
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
 
 jobs:
-  test_step:
+  release-to-staging:
     runs-on: ubuntu-latest
-    environment: Development
+    env:
+      TAG_NAME: ${{ github.event.inputs.tagName }}
+      TARGET_REF: ${{ github.event.inputs.targetRef }}
     steps:
-      - run: echo "test_step Done."
+      - name: Check semver format of target tag
+        run: |
+          if [[ ! ${{ env.TAG_NAME }} =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid semver format. Please use vX.Y.Z."
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_REF }}
+
+      - name: Tagging
+        run: git tag ${{ env.TAG_NAME }}
+
+      - name: Push tag
+        run: git push origin ${{ env.TAG_NAME }}
+
+      - name: Generate Release Notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+
+          # 前回のタグを取得
+          PREV_TAG=$(git describe --tags --abbrev=0 ${{ env.TAG_NAME }}^)
+          
+          # リリースノートを生成
+          NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes -F tag_name=$TAG -F previous_tag_name=$PREV_TAG --jq .body)
+          
+          # リリースを作成
+          gh release create $TAG -t $TAG -n "$NOTES"
