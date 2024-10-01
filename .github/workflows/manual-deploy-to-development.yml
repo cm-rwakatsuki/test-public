@@ -21,6 +21,7 @@ permissions:
 
 jobs:
   release-to-staging:
+    environment: staging
     runs-on: ubuntu-latest
     env:
       TAG_NAME: ${{ github.event.inputs.tagName }}
@@ -33,6 +34,11 @@ jobs:
             exit 1
           fi
 
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_REF }}
+
       - name: Check if the tag is newer than the latest tag
         run: |
           git fetch --all --tags
@@ -41,11 +47,6 @@ jobs:
             echo "The tag is not newer than the latest tag."
             exit 1
           fi
-
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.TARGET_REF }}
 
       - name: Tagging
         run: git tag ${{ env.TAG_NAME }}
