@@ -53,7 +53,7 @@ jobs:
           git fetch --all --tags
 
           # 現在のタグの一つ前のタグの取得を試みる
-          PREV_TAG=$(git describe --tags --abbrev=0 ${{ env.TAG_NAME }}^ 2>/dev/null || echo "")
+          PREV_TAG=$(git tag --sort=-creatordate | grep -A 1 ${{ env.TAG_NAME }} | tail -n 1)
           echo "Previous tag: $PREV_TAG"
       
           if [ -z "$PREV_TAG" ]; then
