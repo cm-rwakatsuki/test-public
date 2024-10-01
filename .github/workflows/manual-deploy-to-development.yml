@@ -6,8 +6,8 @@ env:
 on:
   workflow_dispatch:
     inputs:
-      tagName:
-        description: "タグ名 (e.g. v1.0.0)"
+      newTag:
+        description: "新規リリースするタグ名 (e.g. v1.0.0)"
         required: true
       targetRef:
         description: "リリース対象のref (e.g. refs/heads/some-branch)"
@@ -24,12 +24,12 @@ jobs:
     environment: staging
     runs-on: ubuntu-latest
     env:
-      TAG_NAME: ${{ github.event.inputs.tagName }}
+      NEW_TAG: ${{ github.event.inputs.newTag }}
       TARGET_REF: ${{ github.event.inputs.targetRef }}
     steps:
       - name: Check semver format of target tag
         run: |
-          if [[ ! ${{ env.TAG_NAME }} =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ ! ${{ env.NEW_TAG }} =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Invalid semver format. Please use vX.Y.Z."
             exit 1
           fi
@@ -39,28 +39,29 @@ jobs:
         with:
           ref: ${{ env.TARGET_REF }}
 
-      - name: Check if the tag is newer than the latest tag
+      - name: Check if the tag is newer than the existing latest tag
         run: |
           git fetch --all --tags
-          LATEST_TAG=$(git tag --sort=-v:refname | head -n 1)
-          if [ -n "$LATEST_TAG" ]; then
-            LATEST_VERSION=${LATEST_TAG#v}
-            NEW_TAG=${{ env.TAG_NAME }}
+          EXISTING_LATEST_TAG=$(git tag --sort=-v:refname | head -n 1)
+          if [ -n "$EXISTING_LATEST_TAG" ]; then
+            EXISTING_LATEST_VERSION=${EXISTING_LATEST_TAG#v}
+            NEW_TAG=${{ env.NEW_TAG }}
             NEW_VERSION=${NEW_TAG#v}
 
-            if [ "$(printf '%s\n' "$LATEST_VERSION" "$NEW_VERSION" | sort -V | tail -n 1)" != "$NEW_VERSION" ]; then
-              echo "Error: The specified tag (${{ env.TAG_NAME }}) is not newer than the latest tag ($LATEST_TAG)."
+            if [ "$(printf '%s\n' "$EXISTING_LATEST_VERSION" "$NEW_VERSION" | sort -V | tail -n 1)" != "$NEW_VERSION" ]; then
+              echo "Error: The specified tag (${{ env.NEW_TAG }}) is not newer than the latest tag ($EXISTING_LATEST_TAG)."
               exit 1
             fi
           fi
-          echo "The specified tag (${{ env.TAG_NAME }}) is valid and newer than the latest tag."
+          echo "The specified tag (${{ env.NEW_TAG }}) is valid and newer than the latest tag."
 
       - name: Tagging
-        run: git tag ${{ env.TAG_NAME }}
+        run: git tag ${{ env.NEW_TAG }}
 
       - name: Push tag
-        run: git push origin ${{ env.TAG_NAME }}
+        run: git push origin ${{ env.NEW_TAG }}
 
+      # FIXME: 本番環境へのリリースワークフローが利用可能になったら、このステージング環境へのリリースワークフローからは下記のステップを削除する
       - name: Generate Release Notes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -70,19 +71,19 @@ jobs:
           git fetch --all --tags
 
           # 現在のタグの一つ前のタグの取得を試みる
-          PREV_TAG=$(git tag --sort=-creatordate | grep -A 1 ${{ env.TAG_NAME }} | tail -n 1)
+          PREV_TAG=$(git tag --sort=-creatordate | grep -A 1 ${{ env.NEW_TAG }} | tail -n 1)
           echo "Previous tag: $PREV_TAG"
       
           if [ -z "$PREV_TAG" ]; then
             # 前のタグが見つからない場合、最初のコミットからのリリースノートを生成
-            NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes --field tag_name=${{ env.TAG_NAME }} --jq .body)
+            NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes --field tag_name=${{ env.NEW_TAG }} --jq .body)
             echo "No previous tag found. Generating release notes from the first commit."
           else
             # 前のタグが見つかった場合、そのタグからのリリースノートを生成
-            NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes --field tag_name=${{ env.TAG_NAME }} --field previous_tag_name=$PREV_TAG --jq .body)
-            echo "Generating release notes from $PREV_TAG to ${{ env.TAG_NAME }}"
+            NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes --field tag_name=${{ env.NEW_TAG }} --field previous_tag_name=$PREV_TAG --jq .body)
+            echo "Generating release notes from $PREV_TAG to ${{ env.NEW_TAG }}"
           fi
       
           # リリースを作成（タグを明示的に指定）
-          gh release create ${{ env.TAG_NAME }} --target ${{ env.TARGET_REF }} --title "${{ env.TAG_NAME }}" --notes "$NOTES"
+          gh release create ${{ env.NEW_TAG }} --target ${{ env.TARGET_REF }} --title "${{ env.NEW_TAG }}" --notes "$NOTES"
           echo "Release created."
