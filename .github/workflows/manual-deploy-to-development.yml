@@ -45,9 +45,9 @@ jobs:
           LATEST_TAG=$(git tag --sort=-v:refname | head -n 1)
           if [ -n "$LATEST_TAG" ]; then
             LATEST_VERSION=${LATEST_TAG#v}
-            NEW_VERSION=${{ env.TAG_NAME }}
-            NEW_VERSION=${NEW_VERSION#v}
-            
+            NEW_TAG=${{ env.TAG_NAME }}
+            NEW_VERSION=${NEW_TAG#v}
+
             if [ "$(printf '%s\n' "$LATEST_VERSION" "$NEW_VERSION" | sort -V | tail -n 1)" != "$NEW_VERSION" ]; then
               echo "Error: The specified tag (${{ env.TAG_NAME }}) is not newer than the latest tag ($LATEST_TAG)."
               exit 1
