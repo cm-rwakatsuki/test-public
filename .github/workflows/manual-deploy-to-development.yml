@@ -49,9 +49,19 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
 
+          # リポジトリの最新状態を取得
+          git fetch --all --tags
+      
+          # タグの存在を確認
+          if ! git rev-parse ${{ env.TAG_NAME }} >/dev/null 2>&1; then
+            echo "Error: Tag ${{ env.TAG_NAME }} does not exist in the repository."
+            exit 1
+          fi
+
           # 現在のタグの一つ前のタグの取得を試みる
           PREV_TAG=$(git describe --tags --abbrev=0 ${{ env.TAG_NAME }}^ 2>/dev/null || echo "")
-
+          echo "Previous tag: $PREV_TAG"
+      
           if [ -z "$PREV_TAG" ]; then
             # 前のタグが見つからない場合、最初のコミットからのリリースノートを生成
             NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes -F tag_name=${{ env.TAG_NAME }} --jq .body)
@@ -59,6 +69,6 @@ jobs:
             # 前のタグが見つかった場合、そのタグからのリリースノートを生成
             NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes -F tag_name=${{ env.TAG_NAME }} -F previous_tag_name=$PREV_TAG --jq .body)
           fi
-
-          # リリースを作成
-          gh release create $TAG -t $TAG -n "$NOTES"
+      
+          # リリースを作成（タグを明示的に指定）
+          gh release create ${{ env.TAG_NAME }} --target ${{ env.TARGET_REF }} -t "${{ env.TAG_NAME }}" -n "$NOTES"
