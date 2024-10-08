@@ -23,6 +23,7 @@ jobs:
         id: branch-deploy
         with:
           trigger: ".deploy"
+          environment: "DEVELOPMENT"
 
       # Run your deployment logic for your project here - examples seen below
 
