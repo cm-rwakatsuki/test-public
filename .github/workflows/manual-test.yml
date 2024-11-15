@@ -1,0 +1,27 @@
+on: workflow_dispatch
+
+jobs:
+  job1:
+    environment: DEVELOPMENT
+    runs-on: ubuntu-latest
+    steps:
+      # Development Environment Variable 1
+      - run: echo ${{ vars.MY_VAR_1 }}
+
+      # Development Environment Variable 2
+      - run: echo ${{ vars.MY_VAR_2 }}
+
+      # Repository Variable 2
+      - run: echo ${{ vars.MY_VAR_3 }}
+
+  job2:
+    runs-on: ubuntu-latest
+    steps:
+      # Repository Variable 1
+      - run: echo ${{ vars.MY_VAR_1 }}
+
+      # null
+      - run: echo ${{ vars.MY_VAR_2 }}
+
+      # Repository Variable 2
+      - run: echo ${{ vars.MY_VAR_3 }}
