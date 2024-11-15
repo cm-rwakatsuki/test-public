@@ -1,27 +1,33 @@
 on: workflow_dispatch
 
+env:
+  MY_ENV_1: "Workflow Environment Variable 1"
+  MY_ENV_2: "Workflow Environment Variable 2"
+
 jobs:
   job1:
-    environment: DEVELOPMENT
     runs-on: ubuntu-latest
     steps:
-      # Development Environment Variable 1
-      - run: echo ${{ vars.MY_VAR_1 }}
+      # Workflow Environment Variable 1
+      - run: echo ${{ env.MY_ENV_1 }}
 
-      # Development Environment Variable 2
-      - run: echo ${{ vars.MY_VAR_2 }}
-
-      # Repository Variable 2
-      - run: echo ${{ vars.MY_VAR_3 }}
+      # Step Environment Variable 1
+      - run: echo ${{ env.MY_ENV_1 }}
+        env:
+          MY_ENV_1: "Step Environment Variable 1"
 
   job2:
     runs-on: ubuntu-latest
+    env:
+      MY_ENV_1: "Job Environment Variable 1"
     steps:
-      # Repository Variable 1
-      - run: echo ${{ vars.MY_VAR_1 }}
+      # Job Environment Variable 1
+      - run: echo ${{ env.MY_ENV_1 }}
 
-      # null
-      - run: echo ${{ vars.MY_VAR_2 }}
+      # Workflow Environment Variable 2
+      - run: echo ${{ env.MY_ENV_2 }}
 
-      # Repository Variable 2
-      - run: echo ${{ vars.MY_VAR_3 }}
+      # Step Environment Variable 1
+      - run: echo ${{ env.MY_ENV_1 }}
+        env:
+          MY_ENV_1: "Step Environment Variable 1"
